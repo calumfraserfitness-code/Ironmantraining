@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IM70.3">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="manifest" href="manifest.json">
+  <title>IRONMAN 70.3 — Calum Fraser Command Centre</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">M</div>
+      <div class="brand-text">
+        <span class="brand-top">IRONMAN</span>
+        <span class="brand-bot">70.3 COMMAND CENTRE</span>
+      </div>
+    </div>
+
+    <div class="athlete-mini">
+      <div class="athlete-avatar">CF</div>
+      <div class="athlete-info">
+        <div class="athlete-name-mini">Calum Fraser</div>
+        <div class="athlete-tag">IRONMAN 70.3 Athlete</div>
+      </div>
+    </div>
+
+    <ul class="nav-list">
+      <li><a href="#" class="nav-link active" data-page="dashboard">
+        <i class="fa-solid fa-gauge-high"></i><span>Dashboard</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="training">
+        <i class="fa-solid fa-calendar-days"></i><span>Training Plan</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="today">
+        <i class="fa-solid fa-bolt"></i><span>Today's Session</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="nutrition">
+        <i class="fa-solid fa-utensils"></i><span>Nutrition</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="hydration">
+        <i class="fa-solid fa-droplet"></i><span>Hydration</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="performance">
+        <i class="fa-solid fa-chart-line"></i><span>Performance</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="raceintel">
+        <i class="fa-solid fa-flag-checkered"></i><span>Race Intel</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-page="mylog">
+        <i class="fa-solid fa-clipboard-check"></i><span>My Log</span>
+      </a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="garmin-badge">
+        <i class="fa-solid fa-link"></i>
+        <span>Garmin Ready</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrap">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      <div class="topbar-right">
+        <div class="countdown-badge">
+          <i class="fa-solid fa-flag-checkered"></i>
+          <span id="countdownBadge">— days to race</span>
+        </div>
+        <div class="today-date" id="todayDate"></div>
+      </div>
+    </header>
+
+    <!-- PAGES -->
+    <main class="pages-wrap">
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <div class="page active" id="page-dashboard">
+
+        <!-- TODAY HERO -->
+        <div class="dash-today-hero" id="dashTodayHero"></div>
+
+        <!-- WEEKLY STATS -->
+        <div class="weekly-stats-strip mb-24" id="weeklyStatsStrip"></div>
+
+        <!-- DISTANCE TARGETS -->
+        <div class="card mb-24" id="distanceTargetsCard"></div>
+
+        <!-- RACE COUNTDOWNS -->
+        <div class="card mb-24">
+          <div class="card-title"><i class="fa-solid fa-flag-checkered" style="color:var(--red)"></i> Upcoming Races</div>
+          <div id="raceCountdownsCard"></div>
+        </div>
+
+        <!-- THIS WEEK -->
+        <div class="card mb-24">
+          <div class="card-title"><i class="fa-solid fa-calendar-week"></i> This Week — Tap to Log Each Session</div>
+          <div class="dash-week-grid" id="dashWeekPlan"></div>
+        </div>
+
+        <!-- NEXT WEEK -->
+        <div class="card mb-24">
+          <div class="card-title" id="nextWeekTitle">Next Week</div>
+          <div class="dash-week-grid" id="nextWeekPlan"></div>
+        </div>
+
+        <!-- PROGRESS + COUNTDOWN -->
+        <div class="grid grid-3 mb-24">
+          <div class="card card-red">
+            <div class="card-label">RACE COUNTDOWN</div>
+            <div class="countdown-num" id="countdownNum">--</div>
+            <div class="countdown-unit">DAYS</div>
+            <div class="race-name">IRONMAN 70.3</div>
+            <div class="race-date-line">25 OCT 2026 · COSTA NAVARINO 🇬🇷</div>
+            <div class="phase-pill" id="phasePill">BASE PHASE</div>
+          </div>
+          <div class="card" style="grid-column:span 2">
+            <div class="card-label" style="margin-bottom:10px">PLAN PROGRESS — WEEK <span id="weekNum">—</span> OF 32</div>
+            <div class="progress-bar-big">
+              <div class="progress-fill-big" id="planProgress" style="width:0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+              <div class="progress-label" id="planProgressLabel">0% complete</div>
+              <div style="font-size:11px;color:var(--text-3)" id="dashWeekRange"></div>
+            </div>
+            <div class="week-dot-row" id="weekDotRow"></div>
+          </div>
+        </div>
+
+        <!-- NUTRITION STRIP -->
+        <div class="nutrition-strip mb-24" id="nutritionStrip"></div>
+
+        <!-- GARMIN IMPORT -->
+        <div class="card mb-24">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div class="card-title" style="margin:0"><i class="fa-solid fa-file-import" style="color:var(--blue)"></i> Import from Garmin or Strava</div>
+            <button class="btn-outline-sm" onclick="toggleGarminImport()" id="garminToggleBtn"><i class="fa-solid fa-chevron-down"></i> Import Activities</button>
+          </div>
+          <div id="garminImportPanel" style="display:none;margin-top:12px">
+            <div class="garmin-drop-zone" id="garminDropZone"
+              ondragover="event.preventDefault();this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="handleGarminDrop(event)">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--blue);margin-bottom:8px;display:block"></i>
+              <div style="font-weight:600;font-size:13px">Drop your <code>Activities.csv</code> here</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:4px">Garmin Connect export or Strava data export</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:6px">or <label for="garminFileInput" style="color:var(--red);cursor:pointer;text-decoration:underline">browse to select</label></div>
+              <input type="file" id="garminFileInput" accept=".csv" style="display:none" onchange="handleGarminFile(this.files[0])">
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:8px"><i class="fa-solid fa-circle-info"></i> Garmin Connect → Activities → Export CSV</div>
+          </div>
+          <div id="garminImportResult"></div>
+        </div>
+
+        <!-- CHARTS ROW -->
+        <div class="grid grid-2 mb-24">
+          <div class="card">
+            <div class="card-title">Weekly Training Load</div>
+            <div class="chart-wrap"><canvas id="trainingLoadChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Heart Rate Zone Distribution</div>
+            <div class="chart-wrap"><canvas id="hrZonesChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- HR ZONES -->
+        <div class="card mb-24">
+          <div class="card-title">Heart Rate Zones — Max HR 185 bpm</div>
+          <div class="zones-grid" id="zonesGrid"></div>
+        </div>
+
+        <!-- RACE DISTANCES + VENUE -->
+        <div class="card mb-24">
+          <div class="card-title">Race Targets — 70.3 Distances</div>
+          <div class="race-distances" id="raceDistances"></div>
+        </div>
+        <div class="card venue-card mb-24">
+          <div class="card-title">🇬🇷 Race Venue — Costa Navarino, Greece</div>
+          <div class="venue-facts" id="venueFacts"></div>
+        </div>
+
+      </div>
+      <!-- END DASHBOARD -->
+
+
+      <!-- ==================== TRAINING PLAN ==================== -->
+      <div class="page" id="page-training">
+        <div class="page-intro">
+          <h1 class="page-h1">32-Week <span class="red">Training Plan</span></h1>
+          <p class="page-sub">Progressive periodised programme · Mon–Sun · Click any session to log</p>
+        </div>
+        <div id="trainingPlanWeeks"></div>
+      </div>
+
+
+      <!-- ==================== TODAY ==================== -->
+      <div class="page" id="page-today">
+        <div class="page-intro">
+          <h1 class="page-h1">Today's <span class="red">Session</span></h1>
+          <p class="page-sub" id="todayFullDate"></p>
+        </div>
+        <div id="todayContent"></div>
+      </div>
+
+
+      <!-- ==================== NUTRITION ==================== -->
+      <div class="page" id="page-nutrition">
+        <div class="page-intro">
+          <h1 class="page-h1">Nutrition <span class="red">System</span></h1>
+          <p class="page-sub">250g protein · carbs cycle by training load · fat fills remaining kcal</p>
+        </div>
+        <div id="nutritionContent"></div>
+      </div>
+
+
+      <!-- ==================== HYDRATION ==================== -->
+      <div class="page" id="page-hydration">
+        <div class="page-intro">
+          <h1 class="page-h1">Hydration <span class="red">System</span></h1>
+          <p class="page-sub">Fluid and Himalayan salt targets calibrated to training load</p>
+        </div>
+        <div id="hydrationContent"></div>
+      </div>
+
+
+      <!-- ==================== PERFORMANCE ==================== -->
+      <div class="page" id="page-performance">
+        <div class="page-intro">
+          <h1 class="page-h1">Performance <span class="red">Tracking</span></h1>
+          <p class="page-sub">Training analytics and trend charts</p>
+        </div>
+        <div class="grid grid-2 mb-24">
+          <div class="card">
+            <div class="card-title">Weekly Training Load (min)</div>
+            <div class="chart-wrap"><canvas id="trainingLoadChart2"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">HR Zone Distribution</div>
+            <div class="chart-wrap"><canvas id="hrZonesChart2"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ==================== RACE INTEL ==================== -->
+      <div class="page" id="page-raceintel">
+        <div class="page-intro">
+          <h1 class="page-h1">Race <span class="red">Intelligence</span></h1>
+          <p class="page-sub">IRONMAN 70.3 Costa Navarino · Peloponnese, Greece · 25 October 2026</p>
+        </div>
+        <div id="raceIntelContent"></div>
+      </div>
+
+
+      <!-- ==================== MY LOG ==================== -->
+      <div class="page" id="page-mylog">
+        <div class="page-intro">
+          <h1 class="page-h1">My Training <span class="red">Log</span></h1>
+          <p class="page-sub">Every session counted. Every km earns race day confidence.</p>
+        </div>
+        <div class="grid grid-4 mb-24" id="myLogStats"></div>
+        <div id="myLogList"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MOBILE OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+
+  <!-- ==================== LOG MODAL ==================== -->
+  <div class="log-modal-overlay" id="logModal" onclick="if(event.target===this)closeLogModal()">
+    <div class="log-modal-box">
+      <div class="log-modal-header">
+        <div class="log-modal-title" id="logModalTitle">Log Workout</div>
+        <button class="log-modal-close" onclick="closeLogModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="log-modal-body">
+        <!-- Extra session badge -->
+        <div id="logExtraTypeBadge" class="log-extra-badge" style="display:none"></div>
+        <!-- Missed session banner -->
+        <div id="logMissedBanner" class="log-missed-banner" style="display:none"></div>
+        <!-- Planned session brief -->
+        <div id="logWorkoutBrief" style="display:none"></div>
+
+        <!-- Actual logged data -->
+        <div id="logFormBody">
+        <div class="log-field-row" id="logDistRow">
+          <div class="log-field">
+            <label class="log-label"><i class="fa-solid fa-route"></i> Distance (km)</label>
+            <input id="logDist" type="number" step="0.01" min="0" placeholder="e.g. 15.0" class="log-input">
+          </div>
+          <div class="log-field">
+            <label class="log-label"><i class="fa-solid fa-clock"></i> Duration (min)</label>
+            <input id="logDur" type="number" min="0" placeholder="e.g. 55" class="log-input">
+          </div>
+        </div>
+        <div class="log-field">
+          <label class="log-label"><i class="fa-solid fa-heart-pulse"></i> Avg Heart Rate — optional</label>
+          <input id="logHR" type="number" min="0" placeholder="e.g. 148" class="log-input">
+        </div>
+        <div class="log-field">
+          <label class="log-label"><i class="fa-solid fa-note-sticky"></i> Notes — optional</label>
+          <textarea id="logNotes" class="log-textarea" placeholder="How did it go? Felt strong, HR high, trail run..."></textarea>
+        </div>
+
+        <!-- Did something different? -->
+        <div class="log-override-divider"><span>Did you do something different?</span></div>
+        <div class="log-field">
+          <label class="log-label"><i class="fa-solid fa-shuffle"></i> Custom Session Name — optional</label>
+          <input id="logOverrideName" type="text" class="log-input" placeholder="e.g. 15km Trail Run, Recovery Swim, Rest Day...">
+        </div>
+        <div class="log-field">
+          <label class="log-label"><i class="fa-solid fa-tag"></i> Activity Type — optional</label>
+          <select id="logOverrideType" class="log-input log-select">
+            <option value="">— same as planned —</option>
+            <option value="run">&#127939; Run</option>
+            <option value="swim">&#127944; Swim</option>
+            <option value="bike">&#128692; Bike / Spin</option>
+            <option value="gym">&#127947; Gym / Strength</option>
+            <option value="brick">&#9889; Brick</option>
+            <option value="rest">&#128564; Rest / Recovery</option>
+          </select>
+        </div>
+        </div><!-- end logFormBody -->
+      </div>
+      <div class="log-modal-footer">
+        <button class="log-missed-btn" onclick="markMissedModal()" title="Mark this session as missed">
+          <i class="fa-solid fa-circle-xmark"></i> Missed
+        </button>
+        <button class="log-delete-btn" id="logDeleteBtn" onclick="deleteLogModal()">
+          <i class="fa-solid fa-trash"></i> Remove
+        </button>
+        <button class="log-save-btn" id="logSaveBtn" onclick="submitLogModal()">
+          <i class="fa-solid fa-check"></i> Save &amp; Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
