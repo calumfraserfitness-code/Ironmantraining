@@ -147,26 +147,31 @@
         <!-- NUTRITION STRIP -->
         <div class="nutrition-strip mb-24" id="nutritionStrip"></div>
 
-        <!-- GARMIN IMPORT -->
+        <!-- STRAVA + GARMIN IMPORT -->
         <div class="card mb-24">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <div class="card-title" style="margin:0"><i class="fa-solid fa-file-import" style="color:var(--blue)"></i> Import from Garmin or Strava</div>
-            <button class="btn-outline-sm" onclick="toggleGarminImport()" id="garminToggleBtn"><i class="fa-solid fa-chevron-down"></i> Import Activities</button>
-          </div>
-          <div id="garminImportPanel" style="display:none;margin-top:12px">
-            <div class="garmin-drop-zone" id="garminDropZone"
-              ondragover="event.preventDefault();this.classList.add('drag-over')"
-              ondragleave="this.classList.remove('drag-over')"
-              ondrop="handleGarminDrop(event)">
-              <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--blue);margin-bottom:8px;display:block"></i>
-              <div style="font-weight:600;font-size:13px">Drop your <code>Activities.csv</code> here</div>
-              <div style="font-size:12px;color:var(--text-3);margin-top:4px">Garmin Connect export or Strava data export</div>
-              <div style="font-size:12px;color:var(--text-3);margin-top:6px">or <label for="garminFileInput" style="color:var(--red);cursor:pointer;text-decoration:underline">browse to select</label></div>
-              <input type="file" id="garminFileInput" accept=".csv" style="display:none" onchange="handleGarminFile(this.files[0])">
+          <!-- Strava live sync -->
+          <div id="stravaStatusEl"></div>
+
+          <!-- Garmin CSV manual import -->
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-size:11px;color:var(--text-3)"><i class="fa-solid fa-file-csv"></i> Manual CSV import (Garmin / Strava export)</div>
+              <button class="btn-outline-sm" onclick="toggleGarminImport()" id="garminToggleBtn"><i class="fa-solid fa-chevron-down"></i></button>
             </div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:8px"><i class="fa-solid fa-circle-info"></i> Garmin Connect → Activities → Export CSV</div>
+            <div id="garminImportPanel" style="display:none;margin-top:10px">
+              <div class="garmin-drop-zone" id="garminDropZone"
+                ondragover="event.preventDefault();this.classList.add('drag-over')"
+                ondragleave="this.classList.remove('drag-over')"
+                ondrop="handleGarminDrop(event)">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size:24px;color:var(--blue);margin-bottom:6px;display:block"></i>
+                <div style="font-weight:600;font-size:13px">Drop your <code>Activities.csv</code> here</div>
+                <div style="font-size:12px;color:var(--text-3);margin-top:4px">or <label for="garminFileInput" style="color:var(--red);cursor:pointer;text-decoration:underline">browse to select</label></div>
+                <input type="file" id="garminFileInput" accept=".csv" style="display:none" onchange="handleGarminFile(this.files[0])">
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:6px"><i class="fa-solid fa-circle-info"></i> Garmin Connect → Activities → Export CSV</div>
+            </div>
+            <div id="garminImportResult"></div>
           </div>
-          <div id="garminImportResult"></div>
         </div>
 
         <!-- CHARTS ROW -->
