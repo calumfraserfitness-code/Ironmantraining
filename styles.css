@@ -2889,3 +2889,91 @@ canvas { max-width: 100%; }
   color: var(--text-2);
   margin-bottom: 12px;
 }
+
+/* ── Strava Integration ──────────────────────────────────────────────────── */
+.strava-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+.strava-bar.connected { border-color: rgba(252,76,2,0.35); background: rgba(252,76,2,0.06); }
+.strava-bar.syncing   { border-color: rgba(255,152,0,0.3); }
+.strava-bar.error     { border-color: rgba(244,67,54,0.3); }
+
+.strava-icon { font-size: 20px; color: #FC4C02; flex-shrink: 0; }
+
+.strava-bar-info { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.strava-bar-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.strava-bar-sync { font-size: 10px; color: var(--text-3); }
+
+.strava-btn-connect {
+  background: #FC4C02;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity .15s;
+}
+.strava-btn-connect:hover { opacity: 0.85; }
+
+.strava-btn-sync {
+  background: rgba(252,76,2,0.12);
+  color: #FC4C02;
+  border: 1px solid rgba(252,76,2,0.3);
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.strava-btn-sync:hover { background: rgba(252,76,2,0.22); }
+
+.strava-btn-disconnect {
+  background: transparent;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color .15s, border-color .15s;
+}
+.strava-btn-disconnect:hover { color: var(--red); border-color: var(--red); }
+
+/* ── Strava toast notification ─────────────────────────────────────────── */
+.strava-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface-2);
+  border: 1px solid rgba(252,76,2,0.4);
+  color: var(--text);
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity .3s, transform .3s;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  white-space: nowrap;
+}
+.strava-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
