@@ -2183,25 +2183,54 @@ function stravaMatchActivity(act) {
   };
 }
 
+function stravaFetchAllActivities(accessToken) {
+  var planStartUnix = Math.floor(new Date(ATHLETE.planStart).getTime() / 1000);
+  // Fetch up to 200 activities per page, up to 2 pages
+  function fetchPage(page) {
+    var url = 'https://www.strava.com/api/v3/athlete/activities?per_page=200&page=' + page + '&after=' + planStartUnix;
+    return fetch(url, { headers: { 'Authorization': 'Bearer ' + accessToken } })
+      .then(function(r) {
+        if (r.status === 401) throw new Error('UNAUTHORIZED');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+  }
+  return fetchPage(1).then(function(p1) {
+    if (p1.length < 200) return p1;
+    return fetchPage(2).then(function(p2) { return p1.concat(p2); });
+  });
+}
+
 function stravaSyncActivities() {
   renderStravaStatus('syncing');
   return stravaGetValidToken().then(function(token) {
-    if (!token) { renderStravaStatus(); return; }
+    if (!token) {
+      stravaShowResult('error', 'Not connected to Strava. Please reconnect.');
+      renderStravaStatus();
+      return;
+    }
     return stravaFetchAllActivities(token).then(function(activities) {
-      var imported = 0;
+      if (!activities || activities.length === 0) {
+        localStorage.setItem(STRAVA_LAST_SYNC_KEY, new Date().toISOString());
+        renderStravaStatus('connected');
+        stravaShowResult('info', 'No activities found since March 16, 2026 on Strava. Make sure your activities are synced to Strava first.');
+        return;
+      }
+      var imported = 0, skipped = 0, unmatched = 0;
+      var types = {};
       activities.forEach(function(act) {
+        types[act.type] = (types[act.type] || 0) + 1;
         var m = stravaMatchActivity(act);
-        if (!m) return;
-        // Don't overwrite manual entries
+        if (!m) { unmatched++; return; }
         var existing = getSubEntry(m.weekNum, m.dayIdx, m.sessionKey);
-        if (existing && existing.source !== 'strava') return;
+        if (existing && existing.source !== 'strava') { skipped++; return; }
         saveSubEntry(m.weekNum, m.dayIdx, m.sessionKey, {
-          missed:   false,
-          dist:     m.distKm,
-          dur:      m.durMin,
-          hr:       m.hr,
-          notes:    m.name,
-          source:   'strava',
+          missed: false,
+          dist:   m.distKm,
+          dur:    m.durMin,
+          hr:     m.hr,
+          notes:  m.name,
+          source: 'strava',
           stravaId: m.stravaId,
         });
         imported++;
@@ -2209,12 +2238,32 @@ function stravaSyncActivities() {
       localStorage.setItem(STRAVA_LAST_SYNC_KEY, new Date().toISOString());
       renderStravaStatus('connected');
       refreshAfterLog();
-      stravaShowToast('✔ ' + imported + ' activities synced from Strava');
+      var typeList = Object.entries(types).map(function(kv){ return kv[1] + '× ' + kv[0]; }).join(', ');
+      stravaShowResult('success',
+        '<strong>' + imported + ' sessions imported</strong> from ' + activities.length + ' Strava activities.' +
+        (skipped  ? ' ' + skipped + ' skipped (manually logged).' : '') +
+        '<br><small style="color:var(--text-3)">Types found: ' + (typeList || 'none') + '</small>'
+      );
     });
   }).catch(function(e) {
     console.error('Strava sync error:', e);
-    renderStravaStatus('error');
+    if (e.message === 'UNAUTHORIZED') {
+      localStorage.removeItem(STRAVA_TOKEN_KEY);
+      renderStravaStatus();
+      stravaShowResult('error', 'Strava session expired. Please reconnect.');
+    } else {
+      renderStravaStatus('error');
+      stravaShowResult('error', 'Sync failed: ' + e.message + '. Check your internet connection and try again.');
+    }
   });
+}
+
+function stravaShowResult(type, html) {
+  var el = document.getElementById('stravaResultEl');
+  if (!el) return;
+  var col = type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--blue)';
+  el.innerHTML = '<div style="margin-top:8px;padding:10px 12px;border-radius:8px;border:1px solid ' + col + '33;background:' + col + '11;font-size:12px;color:var(--text-2);line-height:1.5">' + html + '</div>';
+  setTimeout(function() { if (el) el.innerHTML = ''; }, 12000);
 }
 
 function stravaHandleCallback() {
@@ -2222,16 +2271,17 @@ function stravaHandleCallback() {
   var code   = params.get('code');
   var error  = params.get('error');
   if (error) { window.history.replaceState({}, '', window.location.pathname); return; }
-  if (!code)  return;
+  if (!code) return;
   window.history.replaceState({}, '', window.location.pathname);
   renderStravaStatus('syncing');
   stravaExchangeCode(code).then(function(tokenData) {
+    if (!tokenData || !tokenData.access_token) throw new Error('No token returned');
     stravaStoreToken(tokenData);
     return stravaSyncActivities();
   }).catch(function(e) {
     console.error('Strava auth error:', e);
     renderStravaStatus();
-    stravaShowToast('Could not connect Strava — please try again');
+    stravaShowResult('error', 'Could not connect to Strava: ' + e.message + '. Please try again.');
   });
 }
 
