@@ -1140,6 +1140,7 @@ function renderDashboard() {
   renderWeeklyStats();
   renderDistanceTargets();
   renderRaceCountdowns();
+  renderStravaStatus();
 }
 
 // ── RACE COUNTDOWNS ───────────────────────────────────────────────────────
@@ -2070,12 +2071,235 @@ function showGarminResult(type, msg) {
 // ============================================================
 // INIT
 // ============================================================
+// ============================================================
+// STRAVA INTEGRATION
+// ============================================================
+var STRAVA_CLIENT_ID     = '234801';
+var STRAVA_CLIENT_SECRET = '8a17f099dd214212bfe1f225edd143aa576e6cce';
+var STRAVA_REDIRECT_URI  = 'https://calumfraserfitness-code.github.io/Ironmantraining';
+var STRAVA_TOKEN_KEY     = 'strava_token_v1';
+var STRAVA_LAST_SYNC_KEY = 'strava_last_sync';
+
+function stravaGetStoredToken() {
+  try { return JSON.parse(localStorage.getItem(STRAVA_TOKEN_KEY)); } catch(e) { return null; }
+}
+function stravaStoreToken(t) { localStorage.setItem(STRAVA_TOKEN_KEY, JSON.stringify(t)); }
+function stravaIsConnected() { return !!stravaGetStoredToken(); }
+
+function stravaConnect() {
+  var url = 'https://www.strava.com/oauth/authorize'
+    + '?client_id=' + STRAVA_CLIENT_ID
+    + '&redirect_uri=' + encodeURIComponent(STRAVA_REDIRECT_URI)
+    + '&response_type=code&approval_prompt=auto&scope=activity:read_all';
+  window.location.href = url;
+}
+
+function stravaDisconnect() {
+  localStorage.removeItem(STRAVA_TOKEN_KEY);
+  localStorage.removeItem(STRAVA_LAST_SYNC_KEY);
+  renderStravaStatus();
+}
+
+function stravaExchangeCode(code) {
+  return fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: STRAVA_CLIENT_ID,
+      client_secret: STRAVA_CLIENT_SECRET,
+      code: code,
+      grant_type: 'authorization_code',
+    }),
+  }).then(function(r) { if (!r.ok) throw new Error('Token exchange failed'); return r.json(); });
+}
+
+function stravaRefreshToken(refreshToken) {
+  return fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: STRAVA_CLIENT_ID,
+      client_secret: STRAVA_CLIENT_SECRET,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  }).then(function(r) { if (!r.ok) throw new Error('Token refresh failed'); return r.json(); });
+}
+
+function stravaGetValidToken() {
+  var stored = stravaGetStoredToken();
+  if (!stored) return Promise.resolve(null);
+  var now = Math.floor(Date.now() / 1000);
+  if (stored.expires_at - now < 300) {
+    return stravaRefreshToken(stored.refresh_token).then(function(t) {
+      stravaStoreToken(t);
+      return t.access_token;
+    }).catch(function() { return null; });
+  }
+  return Promise.resolve(stored.access_token);
+}
+
+function stravaFetchAllActivities(accessToken) {
+  var planStartUnix = Math.floor(new Date(ATHLETE.planStart).getTime() / 1000);
+  var url = 'https://www.strava.com/api/v3/athlete/activities?per_page=200&after=' + planStartUnix;
+  return fetch(url, { headers: { 'Authorization': 'Bearer ' + accessToken } })
+    .then(function(r) { if (!r.ok) throw new Error('Fetch activities failed'); return r.json(); });
+}
+
+function stravaTypeToKey(stravaType) {
+  var map = {
+    'Run':'run','TrailRun':'run','Race':'run','VirtualRun':'run',
+    'Swim':'swim','OpenWaterSwim':'swim',
+    'Ride':'bike','VirtualRide':'bike','EBikeRide':'bike',
+    'WeightTraining':'gym','Workout':'gym','Crossfit':'gym','Lifting':'gym',
+  };
+  return map[stravaType] || null;
+}
+
+function stravaMatchActivity(act) {
+  var actDate = new Date(act.start_date_local);
+  actDate.setHours(0,0,0,0);
+  var planStart = new Date(ATHLETE.planStart); planStart.setHours(0,0,0,0);
+  var daysSince = Math.round((actDate - planStart) / 86400000);
+  if (daysSince < 0) return null;
+  var weekNum = Math.floor(daysSince / 7) + 1;
+  var dayIdx  = daysSince % 7;
+  if (weekNum > 32) return null;
+  var wo = getPlanWorkout(weekNum, dayIdx);
+  if (!wo || wo.type === 'rest') return null;
+  var typeKey = stravaTypeToKey(act.type);
+  if (!typeKey) return null;
+  var planned = wo.sessions && wo.sessions.find(function(s) { return s.key === typeKey; });
+  return {
+    weekNum: weekNum,
+    dayIdx:  dayIdx,
+    sessionKey: planned ? typeKey : ('x' + typeKey),
+    isExtra:    !planned,
+    distKm:  act.distance  ? Math.round(act.distance / 10) / 100 : null,
+    durMin:  act.moving_time ? Math.round(act.moving_time / 60) : null,
+    hr:      act.average_heartrate ? Math.round(act.average_heartrate) : null,
+    name:    act.name,
+    stravaId: act.id,
+  };
+}
+
+function stravaSyncActivities() {
+  renderStravaStatus('syncing');
+  return stravaGetValidToken().then(function(token) {
+    if (!token) { renderStravaStatus(); return; }
+    return stravaFetchAllActivities(token).then(function(activities) {
+      var imported = 0;
+      activities.forEach(function(act) {
+        var m = stravaMatchActivity(act);
+        if (!m) return;
+        // Don't overwrite manual entries
+        var existing = getSubEntry(m.weekNum, m.dayIdx, m.sessionKey);
+        if (existing && existing.source !== 'strava') return;
+        saveSubEntry(m.weekNum, m.dayIdx, m.sessionKey, {
+          missed:   false,
+          dist:     m.distKm,
+          dur:      m.durMin,
+          hr:       m.hr,
+          notes:    m.name,
+          source:   'strava',
+          stravaId: m.stravaId,
+        });
+        imported++;
+      });
+      localStorage.setItem(STRAVA_LAST_SYNC_KEY, new Date().toISOString());
+      renderStravaStatus('connected');
+      refreshAfterLog();
+      stravaShowToast('✔ ' + imported + ' activities synced from Strava');
+    });
+  }).catch(function(e) {
+    console.error('Strava sync error:', e);
+    renderStravaStatus('error');
+  });
+}
+
+function stravaHandleCallback() {
+  var params = new URLSearchParams(window.location.search);
+  var code   = params.get('code');
+  var error  = params.get('error');
+  if (error) { window.history.replaceState({}, '', window.location.pathname); return; }
+  if (!code)  return;
+  window.history.replaceState({}, '', window.location.pathname);
+  renderStravaStatus('syncing');
+  stravaExchangeCode(code).then(function(tokenData) {
+    stravaStoreToken(tokenData);
+    return stravaSyncActivities();
+  }).catch(function(e) {
+    console.error('Strava auth error:', e);
+    renderStravaStatus();
+    stravaShowToast('Could not connect Strava — please try again');
+  });
+}
+
+function renderStravaStatus(override) {
+  var el = document.getElementById('stravaStatusEl');
+  if (!el) return;
+  var stored    = stravaGetStoredToken();
+  var connected = !!stored;
+  var lastSync  = localStorage.getItem(STRAVA_LAST_SYNC_KEY);
+  var syncLabel = lastSync ? 'Synced ' + new Date(lastSync).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
+  var status    = override || (connected ? 'connected' : 'disconnected');
+
+  if (status === 'syncing') {
+    el.innerHTML = '<div class="strava-bar syncing"><i class="fa-brands fa-strava strava-icon"></i><span>Syncing from Strava…</span><i class="fa-solid fa-rotate fa-spin" style="margin-left:auto;color:var(--orange)"></i></div>';
+    return;
+  }
+  if (status === 'connected') {
+    var name = stored && stored.athlete ? stored.athlete.firstname : 'Strava';
+    el.innerHTML =
+      '<div class="strava-bar connected">' +
+        '<i class="fa-brands fa-strava strava-icon"></i>' +
+        '<div class="strava-bar-info">' +
+          '<span class="strava-bar-name">' + name + ' — Strava connected</span>' +
+          (syncLabel ? '<span class="strava-bar-sync">' + syncLabel + '</span>' : '') +
+        '</div>' +
+        '<button class="strava-btn-sync" onclick="stravaSyncActivities()"><i class="fa-solid fa-rotate"></i> Sync</button>' +
+        '<button class="strava-btn-disconnect" onclick="stravaDisconnect()">Disconnect</button>' +
+      '</div>';
+    return;
+  }
+  if (status === 'error') {
+    el.innerHTML =
+      '<div class="strava-bar error">' +
+        '<i class="fa-brands fa-strava strava-icon"></i>' +
+        '<span>Sync failed — </span>' +
+        '<button class="strava-btn-sync" onclick="stravaSyncActivities()">Retry</button>' +
+      '</div>';
+    return;
+  }
+  // disconnected
+  el.innerHTML =
+    '<div class="strava-bar">' +
+      '<i class="fa-brands fa-strava strava-icon"></i>' +
+      '<div class="strava-bar-info">' +
+        '<span class="strava-bar-name">Connect Strava</span>' +
+        '<span class="strava-bar-sync">Auto-import all your runs, swims &amp; rides</span>' +
+      '</div>' +
+      '<button class="strava-btn-connect" onclick="stravaConnect()">Connect</button>' +
+    '</div>';
+}
+
+function stravaShowToast(msg) {
+  var t = document.createElement('div');
+  t.className = 'strava-toast';
+  t.innerHTML = '<i class="fa-brands fa-strava" style="color:#FC4C02"></i> ' + msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.classList.add('visible'); }, 10);
+  setTimeout(function() { t.classList.remove('visible'); setTimeout(function(){ t.remove(); }, 400); }, 3500);
+}
+
+// ============================================================
 function init() {
   migrateOldLog(); // convert any old w1_d0 entries to new w1_d0_gym format
   // Register PWA service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function(){});
   }
+  stravaHandleCallback(); // handle OAuth redirect if coming back from Strava
   renderDashboard();
   renderDashboardCharts();
   renderNextWeek();
