@@ -1,7 +1,7 @@
 // IRONMAN 70.3 Dashboard — Service Worker
 // Caches all app files for offline use on mobile
 
-const CACHE = 'im703-v2';
+const CACHE = 'im703-v4';
 const ASSETS = [
   './',
   './index.html',
