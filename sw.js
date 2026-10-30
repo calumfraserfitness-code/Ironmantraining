@@ -1,7 +1,7 @@
 // IRONMAN 70.3 Dashboard — Service Worker
 // Caches all app files for offline use on mobile
 
-const CACHE = 'im703-v4';
+const CACHE = 'im703-v5-private-recovery';
 const ASSETS = [
   './',
   './index.html',
@@ -37,6 +37,12 @@ self.addEventListener('activate', function(e) {
 self.addEventListener('fetch', function(e) {
   // Only cache same-origin requests
   if (!e.request.url.startsWith(self.location.origin)) return;
+  if (new URL(e.request.url).searchParams.has('code')) { e.respondWith(fetch(e.request)); return; }
+  e.respondWith(
+    fetch(e.request).then(function(response){ if(response.ok) return response; return caches.match(e.request).then(function(c){return c||response;}); }).catch(function(){return caches.match(e.request);})
+  );
+  return;
+  /* Previous offline cache path retained below for reference. */
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
