@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>var oauthParams=new URLSearchParams(location.search);if(oauthParams.has('state')&&(oauthParams.has('code')||oauthParams.has('error')))location.replace('https://calum-training-hub.calumfraser13-cf.chatgpt.site/api/strava/callback?'+oauthParams.toString());</script>
   <title>LEGAL EDGE × IRONMAN 70.3 · Calum Fraser</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
+<aside style="position:fixed;bottom:16px;right:16px;z-index:9999;max-width:340px;background:#142e36;border:1px solid #9fad72;border-radius:12px;padding:18px;color:#fff;font:13px/1.5 Arial,sans-serif;box-shadow:0 8px 30px #0008">
+<strong>Recover your original training history</strong><p>Your32-week plan and saved log stay here. Send existing sessions and, if available, your saved Strava connection privately to your new training hub.</p>
+<button onclick="recoverMyTraining()" style="padding:12px;background:#d5e29d;color:#142e36;border:0;border-radius:5px;cursor:pointer">Recover my training &amp; Strava</button>
+<p id="recoveryStatus" aria-live="polite">Open this on the browser/device where you used the original app.</p>
+</aside>
 
   <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
   <nav class="sidebar" id="sidebar">
