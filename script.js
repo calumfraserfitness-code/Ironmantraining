@@ -2075,7 +2075,7 @@ function showGarminResult(type, msg) {
 // STRAVA INTEGRATION
 // ============================================================
 var STRAVA_CLIENT_ID     = '234801';
-var STRAVA_CLIENT_SECRET = '8a17f099dd214212bfe1f225edd143aa576e6cce';
+// Strava secret moved to the private server; never ship credentials in browser code.
 var STRAVA_REDIRECT_URI  = 'https://calumfraserfitness-code.github.io/Ironmantraining';
 var STRAVA_TOKEN_KEY     = 'strava_token_v1';
 var STRAVA_LAST_SYNC_KEY = 'strava_last_sync';
@@ -2100,31 +2100,9 @@ function stravaDisconnect() {
   renderStravaStatus();
 }
 
-function stravaExchangeCode(code) {
-  return fetch('https://www.strava.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
-      code: code,
-      grant_type: 'authorization_code',
-    }),
-  }).then(function(r) { if (!r.ok) throw new Error('Token exchange failed'); return r.json(); });
-}
+function stravaExchangeCode() { return Promise.reject(new Error('Use the private training hub to authorise Strava.')); }
 
-function stravaRefreshToken(refreshToken) {
-  return fetch('https://www.strava.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    }),
-  }).then(function(r) { if (!r.ok) throw new Error('Token refresh failed'); return r.json(); });
-}
+function stravaRefreshToken() { return Promise.reject(new Error('Use the private training hub to authorise Strava.')); }
 
 function stravaGetValidToken() {
   var stored = stravaGetStoredToken();
@@ -2375,3 +2353,25 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Original local history is preserved. Transfer only on Calum's explicit button click.
+var TRAINING_HUB_ORIGIN = 'https://calum-training-hub.calumfraser13-cf.chatgpt.site';
+function recoverMyTraining() {
+  var child=window.open(TRAINING_HUB_ORIGIN+'/?recover=original','calumTrainingRecovery');
+  var label=document.getElementById('recoveryStatus');
+  if(!child){if(label)label.textContent='Allow the recovery tab to open, then press Recover again.';return;}
+  if(label)label.textContent='Opening your private hub. Sign in there if needed; keep this original tab open.';
+  var transferred=false;
+  function receive(event){
+    if(event.origin!==TRAINING_HUB_ORIGIN||event.source!==child||event.data?.type!=='calum-legacy-ready'||transferred)return;
+    transferred=true;window.removeEventListener('message',receive);
+    var stored=stravaGetStoredToken();
+    child.postMessage({type:'calum-legacy-history',log:getLog(),overrides:getOverrides(),stravaRefreshToken:stored&&stored.refresh_token?stored.refresh_token:null},TRAINING_HUB_ORIGIN);
+    if(label)label.textContent='Recovery sent privately. The hub will confirm saved sessions and Strava status. Your original log is unchanged.';
+  }
+  window.addEventListener('message',receive);
+  setTimeout(function(){window.removeEventListener('message',receive);if(!transferred&&label)label.textContent='Transfer not confirmed. Keep both tabs open and press Recover again after signing into the hub.';},180000);
+}
+function stravaConnect(){window.location.href=TRAINING_HUB_ORIGIN+'/api/strava/connect';}
+function stravaSyncActivities(){recoverMyTraining();return Promise.resolve();}
+function stravaHandleCallback(){var p=new URLSearchParams(window.location.search);if(p.has('code')&&p.has('state'))window.location.replace(TRAINING_HUB_ORIGIN+'/api/strava/callback?'+p.toString());}
